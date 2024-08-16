@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Penguin PMS - Patient Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <style>
+        body.light-mode {
+            background-color: #f0f4f8;
+            color: #333;
+        }
+        body.dark-mode {
+            background-color: #1a202c;
+            color: #cbd5e0;
+        }
+        .navbar {
+            background-color: #4a5568;
+            color: #fff;
+        }
+        .navbar.light-mode {
+            background-color: #edf2f7;
+            color: #333;
+        }
+        .navbar.dark-mode {
+            background-color: #2d3748;
+            color: #cbd5e0;
+        }
+        .navbar a {
+            color: inherit;
+        }
+    </style>
+</head>
+<body class="light-mode font-sans">
+    <nav class="navbar light-mode text-white p-4 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="logo.png" alt="Logo" class="h-10 mr-2">
+                <span class="text-xl font-bold">Penguin PMS</span>
+            </div>
+            <div>
+                <a href="#" class="mx-2 hover:text-blue-500" onclick="showFAQ()">FAQ</a>
+                <a href="#" class="mx-2 hover:text-blue-500" onclick="showContactUs()">Contact Us</a>
+                <a href="#" id="signOutLink" class="mx-2 hover:text-blue-500" style="display: none;" onclick="signOut()">Sign Out</a>
+                <button onclick="toggleDarkMode()" class="mx-2 bg-gray-300 text-black p-2 rounded-md hover:bg-gray-400 transition duration-300">Toggle Dark Mode</button>
+            </div>
+        </div>
+    </nav>
+
+    <div id="loginForm" class="container mx-auto mt-10 p-6 bg-white rounded-lg shadow-md max-w-md">
+        <div class="flex justify-center mb-6">
+            <img src="logo.png" alt="Logo" class="h-20">
+        </div>
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Login</h1>
+        <input type="text" id="username" placeholder="Username" class="w-full p-3 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <input type="password" id="password" placeholder="Password" class="w-full p-3 mb-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <button onclick="login()" class="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 transition duration-300">Login</button>
+    </div>
+
+    <div id="dashboard" class="container mx-auto mt-10 p-6 bg-white rounded-lg shadow-md" style="display: none;">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Patient Management Dashboard</h1>
+        <div class="flex flex-col lg:flex-row gap-6">
+            <!-- Left column - Data Entry -->
+            <div class="w-full lg:w-1/2 bg-gray-50 p-6 rounded-lg shadow">
+                <h2 class="text-2xl font-semibold mb-4 text-blue-600">Add New Patient</h2>
+                <input type="text" id="patientName" placeholder="Patient Name" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="number" id="patientAge" placeholder="Age" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="tel" id="patientMobile" placeholder="Mobile Number (e.g., 9876543210)" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="email" id="patientEmail" placeholder="Email ID" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="text" id="appointmentDate" placeholder="Select Appointment Date and Time" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button onclick="addPatient()" class="w-full bg-green-500 text-white p-3 rounded-md hover:bg-green-600 transition duration-300">Add Patient</button>
+            </div>
+            
+            <!-- Right column - Data Display and Appointments -->
+            <div class="w-full lg:w-1/2">
+                <div class="bg-gray-50 p-6 rounded-lg shadow mb-6">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-600">Patient List</h2>
+                    <input type="text" id="searchPatient" placeholder="Search Patient" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400" oninput="searchPatients()">
+                    <div id="patientList" class="max-h-60 overflow-y-auto"></div>
+                    <button onclick="exportToExcel()" class="mt-4 bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600 transition duration-300">
+                        <i class="fas fa-file-excel mr-2"></i>Export to Excel
+                    </button>
+                </div>
+                <div class="bg-gray-50 p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-semibold mb-4 text-blue-600">Upcoming Appointments</h2>
+                    <div id="appointmentList" class="max-h-60 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Flatpickr
+        flatpickr("#appointmentDate", {
+            enableTime: true,
+            dateFormat: "Y-m-d H:i",
+            minDate: "today",
+            time_24hr: true,
+            minuteIncrement: 15,
+            onChange: function(selectedDates, dateStr, instance) {
+                // You can add custom logic here if needed
+            }
+        });
+
+        // Check if user is already logged in
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            showDashboard();
+        }
+
+        function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === 'admin' && password === 'admin') {
+                localStorage.setItem('isLoggedIn', 'true');
+                showDashboard();
+            } else {
+                Swal.fire('Error', 'Invalid credentials', 'error');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('signOutLink').style.display = 'inline';
+            loadPatients();
+            loadAppointments();
+        }
+
+        function signOut() {
+            localStorage.removeItem('isLoggedIn');
+            document.getElementById('dashboard').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('signOutLink').style.display = 'none';
+        }
+
+        function addPatient() {
+            const name = document.getElementById('patientName').value;
+            const age = document.getElementById('patientAge').value;
+            const mobile = document.getElementById('patientMobile').value;
+            const email = document.getElementById('patientEmail').value;
+            const appointmentDate = document.getElementById('appointmentDate').value;
+
+            if (name && age && mobile && email && appointmentDate) {
+                if (!isValidIndianMobile(mobile)) {
+                    Swal.fire('Error', 'Please enter a valid Indian mobile number', 'error');
+                    return;
+                }
+
+                if (!isValidEmail(email)) {
+                    Swal.fire('Error', 'Please enter a valid email address', 'error');
+                    return;
+                }
+
+                const patient = { 
+                    name, 
+                    age, 
+                    mobile: '+91 ' + mobile,
+                    email,
+                    appointmentDate,
+                    addedOn: moment().format('YYYY-MM-DD HH:mm:ss') 
+                };
+                let patients = JSON.parse(localStorage.getItem('patients')) || [];
+                patients.push(patient);
+                localStorage.setItem('patients', JSON.stringify(patients));
+                loadPatients();
+                loadAppointments();
+                clearInputFields();
+                Swal.fire('Success', 'Patient added successfully', 'success');
+            } else {
+                Swal.fire('Error', 'Please fill in all fields', 'error');
+            }
+        }
+
+        function loadPatients() {
+            const patientList = document.getElementById('patientList');
+            patientList.innerHTML = '';
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+
+            patients.forEach((patient, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-md shadow mb-2';
+                div.innerHTML = `
+                    <h3 class="font-semibold">${patient.name} (${patient.age})</h3>
+                    <p>${patient.mobile} - ${patient.email}</p>
+                    <p>Appointment: ${moment(patient.appointmentDate).format('MMMM D, YYYY HH:mm')}</p>
+                    <button onclick="editPatient(${index})" class="mt-2 bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600 transition duration-300">
+                        <i class="fas fa-edit mr-1"></i>Edit
+                    </button>
+                    <button onclick="deletePatient(${index})" class="mt-2 bg-red-500 text-white p-1 rounded hover:bg-red-600 transition duration-300">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                    </button>
+                `;
+                patientList.appendChild(div);
+            });
+        }
+
+        function loadAppointments() {
+            const appointmentList = document.getElementById('appointmentList');
+            appointmentList.innerHTML = '';
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+
+            const sortedAppointments = patients
+                .filter(patient => moment(patient.appointmentDate).isAfter(moment()))
+                .sort((a, b) => moment(a.appointmentDate).diff(moment(b.appointmentDate)));
+
+            sortedAppointments.forEach(patient => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-md shadow mb-2';
+                div.innerHTML = `
+                    <h3 class="font-semibold">${patient.name}</h3>
+                    <p>${moment(patient.appointmentDate).format('MMMM D, YYYY HH:mm')}</p>
+                `;
+                appointmentList.appendChild(div);
+            });
+        }
+
+        function deletePatient(index) {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let patients = JSON.parse(localStorage.getItem('patients')) || [];
+                    patients.splice(index, 1);
+                    localStorage.setItem('patients', JSON.stringify(patients));
+                    loadPatients();
+                    loadAppointments();
+                    Swal.fire('Deleted!', 'Patient has been deleted.', 'success');
+                }
+            });
+        }
+
+        function editPatient(index) {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const patient = patients[index];
+
+            Swal.fire({
+                title: 'Edit Patient',
+                html: `
+                    <input type="text" id="editName" class="swal2-input" value="${patient.name}">
+                    <input type="number" id="editAge" class="swal2-input" value="${patient.age}">
+                    <input type="tel" id="editMobile" class="swal2-input" value="${patient.mobile.replace('+91 ', '')}">
+                    <input type="email" id="editEmail" class="swal2-input" value="${patient.email}">
+                    <input type="text" id="editAppointmentDate" class="swal2-input" value="${patient.appointmentDate}">
+                `,
+                focusConfirm: false,
+                preConfirm: () => {
+                    const name = document.getElementById('editName').value;
+                    const age = document.getElementById('editAge').value;
+                    const mobile = document.getElementById('editMobile').value;
+                    const email = document.getElementById('editEmail').value;
+                    const appointmentDate = document.getElementById('editAppointmentDate').value;
+
+                    if (name && age && mobile && email && appointmentDate) {
+                        if (!isValidIndianMobile(mobile)) {
+                            Swal.showValidationMessage('Please enter a valid Indian mobile number');
+                            return false;
+                        }
+
+                        if (!isValidEmail(email)) {
+                            Swal.showValidationMessage('Please enter a valid email address');
+                            return false;
+                        }
+
+                        patients[index] = {
+                            name,
+                            age,
+                            mobile: '+91 ' + mobile,
+                            email,
+                            appointmentDate,
+                            addedOn: patient.addedOn
+                        };
+                        localStorage.setItem('patients', JSON.stringify(patients));
+                        loadPatients();
+                        loadAppointments();
+                        Swal.fire('Updated!', 'Patient information has been updated.', 'success');
+                    } else {
+                        Swal.showValidationMessage('Please fill in all fields');
+                        return false;
+                    }
+                }
+            });
+        }
+
+        function searchPatients() {
+            const searchValue = document.getElementById('searchPatient').value.toLowerCase();
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const filteredPatients = patients.filter(patient => 
+                patient.name.toLowerCase().includes(searchValue) ||
+                patient.mobile.includes(searchValue) ||
+                patient.email.toLowerCase().includes(searchValue)
+            );
+
+            const patientList = document.getElementById('patientList');
+            patientList.innerHTML = '';
+
+            filteredPatients.forEach((patient, index) => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-4 rounded-md shadow mb-2';
+                div.innerHTML = `
+                    <h3 class="font-semibold">${patient.name} (${patient.age})</h3>
+                    <p>${patient.mobile} - ${patient.email}</p>
+                    <p>Appointment: ${moment(patient.appointmentDate).format('MMMM D, YYYY HH:mm')}</p>
+                    <button onclick="editPatient(${index})" class="mt-2 bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600 transition duration-300">
+                        <i class="fas fa-edit mr-1"></i>Edit
+                    </button>
+                    <button onclick="deletePatient(${index})" class="mt-2 bg-red-500 text-white p-1 rounded hover:bg-red-600 transition duration-300">
+                        <i class="fas fa-trash mr-1"></i>Delete
+                    </button>
+                `;
+                patientList.appendChild(div);
+            });
+        }
+
+        function isValidIndianMobile(mobile) {
+            const regex = /^[6-9]\d{9}$/;
+            return regex.test(mobile);
+        }
+
+        function isValidEmail(email) {
+            const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return regex.test(email);
+        }
+
+        function clearInputFields() {
+            document.getElementById('patientName').value = '';
+            document.getElementById('patientAge').value = '';
+            document.getElementById('patientMobile').value = '';
+            document.getElementById('patientEmail').value = '';
+            document.getElementById('appointmentDate').value = '';
+        }
+
+        function exportToExcel() {
+            const patients = JSON.parse(localStorage.getItem('patients')) || [];
+            const ws = XLSX.utils.json_to_sheet(patients);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Patients");
+            XLSX.writeFile(wb, "patient_data.xlsx");
+        }
+
+        function showFAQ() {
+            Swal.fire({
+                title: 'Frequently Asked Questions',
+                html: `
+                    <div class="text-left">
+                        <h3 class="font-bold">Q: How do I add a new patient?</h3>
+                        <p>A: Fill in the patient details in the form on the left side of the dashboard and click "Add Patient".</p>
+                        <h3 class="font-bold mt-4">Q: Can I export patient data?</h3>
+                        <p>A: Yes, you can export patient data to Excel by clicking the "Export to Excel" button.</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Got it!'
+            });
+        }
+
+        function showContactUs() {
+            Swal.fire({
+                title: 'Contact Us',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Email:</strong> worlddj0@gmail.com</p>
+                        <p><strong>Phone:</strong> +91 8087098711</p>
+                        <p><strong>Address:</strong> Bengaluru, India</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        }
+
+        function toggleDarkMode() {
+            const body = document.body;
+            const navbar = document.querySelector('.navbar');
+            body.classList.toggle('dark-mode');
+            body.classList.toggle('light-mode');
+            navbar.classList.toggle('dark-mode');
+            navbar.classList.toggle('light-mode');
+        }
+    </script>
+</body>
+</html>
