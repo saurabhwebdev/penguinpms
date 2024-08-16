@@ -35,6 +35,20 @@
         .navbar a {
             color: inherit;
         }
+        .menu-icon {
+            display: none;
+        }
+        @media (max-width: 768px) {
+            .menu-icon {
+                display: block;
+            }
+            .navbar-menu {
+                display: none;
+            }
+            .navbar-menu.active {
+                display: block;
+            }
+        }
     </style>
 </head>
 <body class="light-mode font-sans">
@@ -44,11 +58,14 @@
                 <img src="logo.png" alt="Logo" class="h-10 mr-2">
                 <span class="text-xl font-bold">Penguin PMS</span>
             </div>
-            <div>
-                <a href="#" class="mx-2 hover:text-blue-500" onclick="showFAQ()">FAQ</a>
-                <a href="#" class="mx-2 hover:text-blue-500" onclick="showContactUs()">Contact Us</a>
-                <a href="#" id="signOutLink" class="mx-2 hover:text-blue-500" style="display: none;" onclick="signOut()">Sign Out</a>
-                <button onclick="toggleDarkMode()" class="mx-2 bg-gray-300 text-black p-2 rounded-md hover:bg-gray-400 transition duration-300">Toggle Dark Mode</button>
+            <div class="menu-icon cursor-pointer lg:hidden" onclick="toggleMenu()">
+                <i class="fas fa-bars"></i>
+            </div>
+            <div class="navbar-menu flex space-x-4 lg:flex">
+                <a href="#" id="signOutLink" class="hover:text-blue-500" style="display: none;" onclick="signOut()">Sign Out</a>
+                <button onclick="toggleDarkMode()" class="text-white p-2 rounded-md hover:text-gray-400 transition duration-300">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
         </div>
     </nav>
@@ -99,6 +116,13 @@
             </div>
         </div>
     </div>
+
+    <footer class="bg-gray-800 text-white p-4 mt-10">
+        <div class="container mx-auto text-center">
+            <a href="#" class="hover:text-blue-500" onclick="showFAQ()">FAQ</a> | 
+            <a href="#" class="hover:text-blue-500" onclick="showContactUs()">Contact Us</a>
+        </div>
+    </footer>
 
     <script>
         // Initialize Flatpickr
@@ -402,6 +426,11 @@
             body.classList.toggle('light-mode');
             navbar.classList.toggle('dark-mode');
             navbar.classList.toggle('light-mode');
+        }
+
+        function toggleMenu() {
+            const menu = document.querySelector('.navbar-menu');
+            menu.classList.toggle('active');
         }
     </script>
 </body>
