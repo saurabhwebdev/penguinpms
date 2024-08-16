@@ -71,6 +71,11 @@
                 <h2 class="text-2xl font-semibold mb-4 text-blue-600">Add New Patient</h2>
                 <input type="text" id="patientName" placeholder="Patient Name" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <input type="number" id="patientAge" placeholder="Age" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <select id="patientGender" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="" disabled selected>Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
                 <input type="tel" id="patientMobile" placeholder="Mobile Number (e.g., 9876543210)" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <input type="email" id="patientEmail" placeholder="Email ID" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
                 <input type="text" id="appointmentDate" placeholder="Select Appointment Date and Time" class="w-full p-3 mb-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400">
@@ -143,11 +148,12 @@
         function addPatient() {
             const name = document.getElementById('patientName').value;
             const age = document.getElementById('patientAge').value;
+            const gender = document.getElementById('patientGender').value;
             const mobile = document.getElementById('patientMobile').value;
             const email = document.getElementById('patientEmail').value;
             const appointmentDate = document.getElementById('appointmentDate').value;
 
-            if (name && age && mobile && email && appointmentDate) {
+            if (name && age && gender && mobile && email && appointmentDate) {
                 if (!isValidIndianMobile(mobile)) {
                     Swal.fire('Error', 'Please enter a valid Indian mobile number', 'error');
                     return;
@@ -161,6 +167,7 @@
                 const patient = { 
                     name, 
                     age, 
+                    gender,
                     mobile: '+91 ' + mobile,
                     email,
                     appointmentDate,
@@ -187,7 +194,7 @@
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-md shadow mb-2';
                 div.innerHTML = `
-                    <h3 class="font-semibold">${patient.name} (${patient.age})</h3>
+                    <h3 class="font-semibold">${patient.name} (${patient.age}, ${patient.gender})</h3>
                     <p>${patient.mobile} - ${patient.email}</p>
                     <p>Appointment: ${moment(patient.appointmentDate).format('MMMM D, YYYY HH:mm')}</p>
                     <button onclick="editPatient(${index})" class="mt-2 bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600 transition duration-300">
@@ -251,6 +258,10 @@
                 html: `
                     <input type="text" id="editName" class="swal2-input" value="${patient.name}">
                     <input type="number" id="editAge" class="swal2-input" value="${patient.age}">
+                    <select id="editGender" class="swal2-input">
+                        <option value="Male" ${patient.gender === 'Male' ? 'selected' : ''}>Male</option>
+                        <option value="Female" ${patient.gender === 'Female' ? 'selected' : ''}>Female</option>
+                    </select>
                     <input type="tel" id="editMobile" class="swal2-input" value="${patient.mobile.replace('+91 ', '')}">
                     <input type="email" id="editEmail" class="swal2-input" value="${patient.email}">
                     <input type="text" id="editAppointmentDate" class="swal2-input" value="${patient.appointmentDate}">
@@ -259,11 +270,12 @@
                 preConfirm: () => {
                     const name = document.getElementById('editName').value;
                     const age = document.getElementById('editAge').value;
+                    const gender = document.getElementById('editGender').value;
                     const mobile = document.getElementById('editMobile').value;
                     const email = document.getElementById('editEmail').value;
                     const appointmentDate = document.getElementById('editAppointmentDate').value;
 
-                    if (name && age && mobile && email && appointmentDate) {
+                    if (name && age && gender && mobile && email && appointmentDate) {
                         if (!isValidIndianMobile(mobile)) {
                             Swal.showValidationMessage('Please enter a valid Indian mobile number');
                             return false;
@@ -277,6 +289,7 @@
                         patients[index] = {
                             name,
                             age,
+                            gender,
                             mobile: '+91 ' + mobile,
                             email,
                             appointmentDate,
@@ -310,7 +323,7 @@
                 const div = document.createElement('div');
                 div.className = 'bg-white p-4 rounded-md shadow mb-2';
                 div.innerHTML = `
-                    <h3 class="font-semibold">${patient.name} (${patient.age})</h3>
+                    <h3 class="font-semibold">${patient.name} (${patient.age}, ${patient.gender})</h3>
                     <p>${patient.mobile} - ${patient.email}</p>
                     <p>Appointment: ${moment(patient.appointmentDate).format('MMMM D, YYYY HH:mm')}</p>
                     <button onclick="editPatient(${index})" class="mt-2 bg-yellow-500 text-white p-1 rounded hover:bg-yellow-600 transition duration-300">
@@ -337,6 +350,7 @@
         function clearInputFields() {
             document.getElementById('patientName').value = '';
             document.getElementById('patientAge').value = '';
+            document.getElementById('patientGender').value = '';
             document.getElementById('patientMobile').value = '';
             document.getElementById('patientEmail').value = '';
             document.getElementById('appointmentDate').value = '';
