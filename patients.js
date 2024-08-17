@@ -15,34 +15,42 @@ export function loadPatients() {
             </select>
         </div>
     </div>
+    <div class="mb-4">
+        <input type="text" id="searchInput" class="input input-bordered w-full" placeholder="Search patients...">
+    </div>
     <div id="patientsList"></div>
     `;
 
     document.getElementById('addPatientButton').addEventListener('click', showAddPatientForm);
     document.getElementById('entriesSelect').addEventListener('change', fetchPatients);
+    document.getElementById('searchInput').addEventListener('input', fetchPatients);
 
     fetchPatients();
 }
 
 function fetchPatients() {
     const entries = parseInt(document.getElementById('entriesSelect').value);
+    const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+
     db.collection('patients').orderBy('createdAt', 'desc').limit(entries).get().then((querySnapshot) => {
         const patientsList = document.getElementById('patientsList');
         patientsList.innerHTML = '';
         querySnapshot.forEach((doc) => {
             const patient = doc.data();
-            patientsList.innerHTML += `
-            <div class="card mb-2 bg-base-100 shadow-md">
-                <div class="card-body p-4">
-                    <h3 class="card-title text-lg font-semibold">${patient.name}</h3>
-                    <p class="text-sm"><strong>Age:</strong> ${patient.age}, <strong>Gender:</strong> ${patient.gender}, <strong>Email:</strong> ${patient.email}, <strong>Blood Group:</strong> ${patient.bloodGroup}, <strong>Contact:</strong> ${patient.contact}</p>
-                    <div class="card-actions justify-end mt-2">
-                        <button class="btn btn-sm btn-primary" onclick="window.editPatient('${doc.id}')">Edit</button>
-                        <button class="btn btn-sm btn-error" onclick="window.deletePatient('${doc.id}')">Delete</button>
+            if (patient.name.toLowerCase().includes(searchQuery) || patient.email.toLowerCase().includes(searchQuery)) {
+                patientsList.innerHTML += `
+                <div class="card mb-2 bg-base-100 shadow-md">
+                    <div class="card-body p-4">
+                        <h3 class="card-title text-lg font-semibold">${patient.name}</h3>
+                        <p class="text-sm"><strong>Age:</strong> ${patient.age}, <strong>Gender:</strong> ${patient.gender}, <strong>Email:</strong> ${patient.email}, <strong>Blood Group:</strong> ${patient.bloodGroup}, <strong>Contact:</strong> ${patient.contact}</p>
+                        <div class="card-actions justify-end mt-2">
+                            <button class="btn btn-sm btn-primary" onclick="window.editPatient('${doc.id}')">Edit</button>
+                            <button class="btn btn-sm btn-error" onclick="window.deletePatient('${doc.id}')">Delete</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            `;
+                `;
+            }
         });
     }).catch((error) => {
         console.error('Error fetching patients:', error);
