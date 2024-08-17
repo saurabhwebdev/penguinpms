@@ -8,22 +8,57 @@ export function loadDashboard() {
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <h3 class="card-title">Upcoming Appointments</h3>
-                <div class="mb-4">
-                    <label for="daysSelect" class="mr-2">Show appointments for next:</label>
-                    <select id="daysSelect" class="select select-bordered">
-                        <option value="1">1 day</option>
-                        <option value="2" selected>2 days</option>
-                        <option value="3">3 days</option>
-                        <option value="7">7 days</option>
-                    </select>
+                <div class="mb-4 flex justify-between">
+                    <div>
+                        <label for="daysSelect" class="mr-2">Show appointments for next:</label>
+                        <select id="daysSelect" class="select select-bordered">
+                            <option value="1">1 day</option>
+                            <option value="2">2 days</option>
+                            <option value="3">3 days</option>
+                            <option value="7" selected>7 days</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="entriesSelect" class="mr-2">Entries per page:</label>
+                        <select id="entriesSelect" class="select select-bordered">
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="15">15</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="upcomingAppointments" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div id="pagination" class="flex justify-center mt-4"></div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <h3 class="card-title">Patient Statistics</h3>
                 <canvas id="patientChart"></canvas>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">Total Patients</h3>
+                <p id="totalPatients" class="text-3xl font-bold"></p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">Total Appointments</h3>
+                <p id="totalAppointments" class="text-3xl font-bold"></p>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">Appointments by Status</h3>
+                <canvas id="appointmentStatusChart"></canvas>
+            </div>
+        </div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="card-title">Appointments per Day</h3>
+                <canvas id="appointmentsPerDayChart"></canvas>
             </div>
         </div>
     </div>
@@ -44,14 +79,23 @@ export function loadDashboard() {
     `;
 
     document.getElementById('daysSelect').addEventListener('change', loadUpcomingAppointments);
+    document.getElementById('entriesSelect').addEventListener('change', loadUpcomingAppointments);
     document.querySelector('.close-modal').addEventListener('click', closeModal);
 
     loadUpcomingAppointments();
     loadPatientStatistics();
+    loadTotalPatients();
+    loadTotalAppointments();
+    loadAppointmentStatusChart();
+    loadAppointmentsPerDayChart();
 }
+
+let allUpcomingAppointments = [];
+let currentPage = 1;
 
 function loadUpcomingAppointments() {
     const days = parseInt(document.getElementById('daysSelect').value);
+    const entriesPerPage = parseInt(document.getElementById('entriesSelect').value);
     const today = new Date();
     const endDate = new Date();
     endDate.setDate(today.getDate() + days);
@@ -66,25 +110,59 @@ function loadUpcomingAppointments() {
         .orderBy('time')
         .get()
         .then((querySnapshot) => {
-            const upcomingAppointments = document.getElementById('upcomingAppointments');
-            upcomingAppointments.innerHTML = '';
+            allUpcomingAppointments = [];
             querySnapshot.forEach((doc) => {
                 const appointment = doc.data();
-                const appointmentDate = new Date(`${appointment.date}T${appointment.time}`);
-
-                upcomingAppointments.innerHTML += `
-                <div class="card bg-base-100 shadow-md mb-4 cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="showAppointmentDetails('${doc.id}')">
-                    <div class="card-body">
-                        <h4 class="card-title">${appointment.patientName}</h4>
-                        <p>${appointmentDate.toLocaleDateString()} at ${appointmentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                    </div>
-                </div>
-                `;
+                appointment.id = doc.id;
+                allUpcomingAppointments.push(appointment);
             });
+
+            renderUpcomingAppointments(entriesPerPage);
         })
         .catch((error) => {
             console.error('Error loading upcoming appointments:', error);
         });
+}
+
+function renderUpcomingAppointments(entriesPerPage) {
+    const upcomingAppointments = document.getElementById('upcomingAppointments');
+    upcomingAppointments.innerHTML = '';
+
+    const startIndex = (currentPage - 1) * entriesPerPage;
+    const endIndex = startIndex + entriesPerPage;
+    const paginatedAppointments = allUpcomingAppointments.slice(startIndex, endIndex);
+
+    paginatedAppointments.forEach((appointment) => {
+        const appointmentDate = new Date(`${appointment.date}T${appointment.time}`);
+        upcomingAppointments.innerHTML += `
+        <div class="card bg-base-100 shadow-md mb-4 cursor-pointer hover:shadow-lg transition-shadow duration-300" onclick="showAppointmentDetails('${appointment.id}')">
+            <div class="card-body flex justify-between items-center">
+                <span class="font-bold">${appointment.patientName}</span>
+                <span>${appointmentDate.toLocaleDateString()} ${appointmentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+        </div>
+        `;
+    });
+
+    renderPagination(allUpcomingAppointments.length, entriesPerPage);
+}
+
+function renderPagination(totalEntries, entriesPerPage) {
+    const pagination = document.getElementById('pagination');
+    pagination.innerHTML = '';
+
+    const totalPages = Math.ceil(totalEntries / entriesPerPage);
+
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.className = `btn ${i === currentPage ? 'btn-primary' : 'btn-secondary'} mx-1`;
+        pageButton.addEventListener('click', () => {
+            currentPage = i;
+            renderUpcomingAppointments(entriesPerPage);
+        });
+        pagination.appendChild(pageButton);
+    }
 }
 
 // Make the function globally accessible
@@ -93,6 +171,10 @@ window.showAppointmentDetails = function(appointmentId) {
         if (doc.exists) {
             const appointment = doc.data();
             const appointmentDetails = document.getElementById('appointmentDetails');
+            if (!appointmentDetails) {
+                console.error('Element with ID "appointmentDetails" not found');
+                return;
+            }
             appointmentDetails.innerHTML = `
                 <p><strong>Patient Name:</strong> ${appointment.patientName}</p>
                 <p><strong>Date:</strong> ${appointment.date}</p>
@@ -127,6 +209,8 @@ function closeModal() {
 }
 
 let patientChart;
+let appointmentStatusChart;
+let appointmentsPerDayChart;
 
 function loadPatientStatistics() {
     db.collection('patients').get().then((querySnapshot) => {
@@ -145,13 +229,17 @@ function loadPatientStatistics() {
             else ageGroups['51+']++;
         });
 
-        const ctx = document.getElementById('patientChart').getContext('2d');
+        const ctx = document.getElementById('patientChart');
+        if (!ctx) {
+            console.error('Element with ID "patientChart" not found');
+            return;
+        }
 
         if (patientChart) {
             patientChart.destroy();
         }
 
-        patientChart = new Chart(ctx, {
+        patientChart = new Chart(ctx.getContext('2d'), {
             type: 'pie',
             data: {
                 labels: Object.keys(ageGroups),
@@ -176,4 +264,140 @@ function loadPatientStatistics() {
     }).catch((error) => {
         console.error('Error loading patient statistics:', error);
     });
+}
+
+function loadTotalPatients() {
+    db.collection('patients').get().then((querySnapshot) => {
+        const totalPatients = querySnapshot.size;
+        document.getElementById('totalPatients').textContent = totalPatients;
+    }).catch((error) => {
+        console.error('Error loading total patients:', error);
+    });
+}
+
+function loadTotalAppointments() {
+    db.collection('appointments').get().then((querySnapshot) => {
+        const totalAppointments = querySnapshot.size;
+        document.getElementById('totalAppointments').textContent = totalAppointments;
+    }).catch((error) => {
+        console.error('Error loading total appointments:', error);
+    });
+}
+
+function loadAppointmentStatusChart() {
+    db.collection('appointments').get().then((querySnapshot) => {
+        const statusCounts = {
+            'Scheduled': 0,
+            'Completed': 0,
+            'Cancelled': 0
+        };
+
+        querySnapshot.forEach((doc) => {
+            const appointment = doc.data();
+            if (appointment.status) {
+                statusCounts[appointment.status] = (statusCounts[appointment.status] || 0) + 1;
+            }
+        });
+
+        const ctx = document.getElementById('appointmentStatusChart');
+        if (!ctx) {
+            console.error('Element with ID "appointmentStatusChart" not found');
+            return;
+        }
+
+        if (appointmentStatusChart) {
+            appointmentStatusChart.destroy();
+        }
+
+        appointmentStatusChart = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)',
+                        'rgba(255, 159, 64, 0.8)'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                title: {
+                    display: true,
+                    text: 'Appointments by Status'
+                }
+            }
+        });
+    }).catch((error) => {
+        console.error('Error loading appointment status chart:', error);
+    });
+}
+
+function loadAppointmentsPerDayChart() {
+    const today = new Date();
+    const dates = [];
+    const counts = [];
+
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        dates.push(date.toISOString().split('T')[0]);
+        counts.push(0);
+    }
+
+    db.collection('appointments')
+        .where('date', '>=', dates[0])
+        .where('date', '<=', dates[6])
+        .get()
+        .then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                const appointment = doc.data();
+                const index = dates.indexOf(appointment.date);
+                if (index !== -1) {
+                    counts[index]++;
+                }
+            });
+
+            const ctx = document.getElementById('appointmentsPerDayChart');
+            if (!ctx) {
+                console.error('Element with ID "appointmentsPerDayChart" not found');
+                return;
+            }
+
+            if (appointmentsPerDayChart) {
+                appointmentsPerDayChart.destroy();
+            }
+
+            appointmentsPerDayChart = new Chart(ctx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Appointments',
+                        data: counts,
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    title: {
+                        display: true,
+                        text: 'Appointments per Day'
+                    },
+                    scales: {
+                        xAxes: [{
+                            type: 'time',
+                            time: {
+                                unit: 'day'
+                            }
+                        }]
+                    }
+                }
+            });
+        })
+        .catch((error) => {
+            console.error('Error loading appointments per day chart:', error);
+        });
 }

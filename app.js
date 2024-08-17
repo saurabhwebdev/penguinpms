@@ -8,7 +8,13 @@ window.loadApp = function() {
     <div class="drawer lg:drawer-open">
         <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
         <div class="drawer-content flex flex-col items-center justify-center">
-            <label for="my-drawer-2" class="btn btn-primary drawer-button lg:hidden">Open menu</label>
+            <label for="my-drawer-2" class="btn btn-primary drawer-button lg:hidden fixed top-4 right-4 z-50">
+                <div class="hamburger">
+                    <div class="line"></div>
+                    <div class="line"></div>
+                    <div class="line"></div>
+                </div>
+            </label>
             <div id="content" class="p-4 w-full">
                 <!-- Content will be dynamically inserted here -->
             </div>
@@ -19,14 +25,21 @@ window.loadApp = function() {
                 <li><a onclick="loadDashboard()">Dashboard</a></li>
                 <li><a onclick="loadPatients()">Patients</a></li>
                 <li><a onclick="loadAppointments()">Appointments</a></li>
-                <li><a onclick="handleLogout()">Logout</a></li>
+                <li><hr class="menu-divider"></li>
                 <li><a onclick="toggleTheme()">Toggle Theme</a></li>
+                <li><hr class="menu-divider"></li>
+                <li><a onclick="openBulkUploadModal()" class="disabled-link">Bulk Upload</a></li>
+                <li><a href="sample.csv" download class="disabled-link">Download Sample CSV</a></li>
+                <li><a href="sample.json" download class="disabled-link">Download Sample JSON</a></li>
+                <li><hr class="menu-divider"></li>
+                <li class="logout-button"><a onclick="handleLogout()">Logout</a></li>
             </ul>
         </div>
     </div>
     `;
 
     loadDashboard();
+    injectStyles();
 }
 
 window.loadDashboard = loadDashboard;
@@ -39,6 +52,65 @@ window.toggleTheme = function() {
     html.dataset.theme = html.dataset.theme === 'light' ? 'dark' : 'light';
 }
 
+// Function to open the bulk upload modal
+window.openBulkUploadModal = function() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+    <h2 class="text-2xl font-bold mb-4">Bulk Upload</h2>
+    <form id="bulkUploadForm" class="space-y-4">
+        <div class="form-control">
+            <label class="label">
+                <span class="label-text">Upload CSV or JSON File</span>
+            </label>
+            <input type="file" id="bulkUploadFile" class="input input-bordered" accept=".csv, .json" required>
+        </div>
+        <button type="submit" class="btn btn-primary mt-4">Upload</button>
+    </form>
+    <div id="uploadStatus" class="mt-4"></div>
+    `;
+
+    document.getElementById('bulkUploadForm').addEventListener('submit', handleBulkUpload);
+}
+
+// Function to handle the bulk upload
+function handleBulkUpload(event) {
+    event.preventDefault();
+    const fileInput = document.getElementById('bulkUploadFile');
+    const file = fileInput.files[0];
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const content = e.target.result;
+                console.log('File content:', content);
+
+                // Simulate upload process
+                uploadStatus.innerHTML = '<div class="loader"></div> Uploading...';
+                setTimeout(() => {
+                    // Process the file content here
+                    try {
+                        const data = JSON.parse(content);
+                        console.log('Parsed data:', data);
+                        // Insert data into the database here
+                        uploadStatus.innerHTML = 'Upload successful!';
+                    } catch (parseError) {
+                        console.error('Error parsing JSON:', parseError);
+                        uploadStatus.innerHTML = 'Error parsing file. Please check the file format.';
+                    }
+                }, 2000); // Simulate a 2-second upload time
+            } catch (error) {
+                console.error('Error during file upload:', error);
+                uploadStatus.innerHTML = 'An error occurred during upload. Please try again.';
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        alert('Please select a file to upload.');
+    }
+}
+
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
     firebase.auth().onAuthStateChanged((user) => {
@@ -49,3 +121,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+// Function to inject styles
+function injectStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 24px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .hamburger .line {
+            width: 100%;
+            height: 3px;
+            background-color: #fff;
+            transition: all 0.3s ease;
+        }
+
+        .drawer-toggle:checked + .drawer-content .hamburger .line:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .drawer-toggle:checked + .drawer-content .hamburger .line:nth-child(2) {
+            opacity: 0;
+        }
+
+        .drawer-toggle:checked + .drawer-content .hamburger .line:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .menu-divider {
+            border-top: 1px solid #e2e8f0;
+            margin: 0.5rem 0;
+        }
+
+        .disabled-link {
+            pointer-events: none;
+            color: #a0aec0;
+        }
+
+        .logout-button {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+        }
+    `;
+    document.head.appendChild(style);
+}
