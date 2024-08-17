@@ -32,7 +32,7 @@ window.loadApp = function() {
                 <li><a href="sample.csv" download class="disabled-link">Download Sample CSV</a></li>
                 <li><a href="sample.json" download class="disabled-link">Download Sample JSON</a></li>
                 <li><hr class="menu-divider"></li>
-                <li class="logout-button"><a onclick="handleLogout()">Logout</a></li>
+                <li class="logout-button"><button onclick="handleLogout()" class="btn btn-danger">Logout</button></li>
             </ul>
         </div>
     </div>
@@ -182,6 +182,25 @@ function injectStyles() {
             position: absolute;
             bottom: 1rem;
             right: 1rem;
+        }
+
+        .btn-danger {
+            background-color: #e3342f;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            display: inline-block;
+        }
+
+        .btn-danger:hover {
+            background-color: #cc1f1a;
+            color: white;
         }
     `;
     document.head.appendChild(style);
