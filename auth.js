@@ -14,7 +14,7 @@ function showLoginForm() {
         <div class="px-8 py-6 mt-4 text-left bg-white shadow-lg">
             <div class="text-center mb-4">
                 <img src="logo.png" alt="Penguin Icon" class="w-16 h-16 mx-auto">
-                <h3 class="text-xl font-bold">June-PMS</h3>
+                
             </div>
             <h3 class="text-2xl font-bold text-center">Login to your account</h3>
             <form id="loginForm">
@@ -56,7 +56,7 @@ function showSignupForm() {
         <div class="px-8 py-6 mt-4 text-left bg-white shadow-lg">
             <div class="text-center mb-4">
                 <img src="./logo.png" alt="logo" class="w-16 h-16 mx-auto">
-                <h3 class="text-xl font-bold">Penguin-PMS</h3>
+               
             </div>
             <h3 class="text-2xl font-bold text-center">Create an account</h3>
             <form id="signupForm">
