@@ -28,9 +28,14 @@ window.loadApp = function() {
                 <li><hr class="menu-divider"></li>
                 <li><a onclick="toggleTheme()">Toggle Theme</a></li>
                 <li><hr class="menu-divider"></li>
-                <li><a onclick="openBulkUploadModal()" class="disabled-link">Bulk Upload</a></li>
-                <li><a href="sample.csv" download class="disabled-link">Download Sample CSV</a></li>
-                <li><a href="sample.json" download class="disabled-link">Download Sample JSON</a></li>
+                <li>
+                    <span class="menu-section-title" onclick="toggleUpcomingFeatures()">Upcoming Features</span>
+                    <ul id="upcomingFeatures" class="hidden space-y-2">
+                        <li><a class="disabled-link" onclick="openBulkUploadModal()">Bulk Upload</a></li>
+                        <li><a class="disabled-link" href="sample.csv" download>Download Sample CSV</a></li>
+                        <li><a class="disabled-link" href="sample.json" download>Download Sample JSON</a></li>
+                    </ul>
+                </li>
                 <li><hr class="menu-divider"></li>
                 <li class="logout-button"><button onclick="handleLogout()" class="btn btn-danger">Logout</button></li>
             </ul>
@@ -111,6 +116,12 @@ function handleBulkUpload(event) {
     }
 }
 
+// Function to toggle the visibility of upcoming features
+window.toggleUpcomingFeatures = function() {
+    const featuresList = document.getElementById('upcomingFeatures');
+    featuresList.classList.toggle('hidden');
+}
+
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
     firebase.auth().onAuthStateChanged((user) => {
@@ -176,6 +187,13 @@ function injectStyles() {
         .disabled-link {
             pointer-events: none;
             color: #a0aec0;
+        }
+
+        .menu-section-title {
+            font-weight: bold;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
         }
 
         .logout-button {
