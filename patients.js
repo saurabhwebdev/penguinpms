@@ -44,6 +44,10 @@ export function loadPatients() {
         </thead>
         <tbody id="patientsList"></tbody>
     </table>
+    <div id="emptyState" class="hidden text-center">
+        <img src="es.gif" alt="No patients available" class="mx-auto mb-4" style="max-width: 300px;">
+        <p>No patients available. Add a patient to get started.</p>
+    </div>
     <div id="pagination" class="flex justify-center mt-4"></div>
     `;
 
@@ -93,30 +97,39 @@ function fetchPatients() {
 
 function renderPatients(patients, entriesPerPage) {
     const patientsList = document.getElementById('patientsList');
+    const emptyState = document.getElementById('emptyState');
     patientsList.innerHTML = '';
 
-    const startIndex = (currentPage - 1) * entriesPerPage;
-    const endIndex = startIndex + entriesPerPage;
-    const paginatedPatients = patients.slice(startIndex, endIndex);
+    if (patients.length === 0) {
+        emptyState.classList.remove('hidden');
+        patientsList.classList.add('hidden');
+    } else {
+        emptyState.classList.add('hidden');
+        patientsList.classList.remove('hidden');
 
-    paginatedPatients.forEach((patient) => {
-        patientsList.innerHTML += `
-        <tr class="hover:bg-gray-100 cursor-pointer" onclick="window.showPatientDetails('${patient.id}')">
-            <td class="border px-4 py-2">${patient.name}</td>
-            <td class="border px-4 py-2">${patient.age}</td>
-            <td class="border px-4 py-2">${patient.gender}</td>
-            <td class="border px-4 py-2">${patient.email}</td>
-            <td class="border px-4 py-2">${patient.bloodGroup}</td>
-            <td class="border px-4 py-2">${patient.contact}</td>
-            <td class="border px-4 py-2">
-                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); window.editPatient('${patient.id}')">Edit</button>
-                <button class="btn btn-sm btn-error" onclick="event.stopPropagation(); window.deletePatient('${patient.id}')">Delete</button>
-            </td>
-        </tr>
-        `;
-    });
+        const startIndex = (currentPage - 1) * entriesPerPage;
+        const endIndex = startIndex + entriesPerPage;
+        const paginatedPatients = patients.slice(startIndex, endIndex);
 
-    renderPagination(patients.length, entriesPerPage);
+        paginatedPatients.forEach((patient) => {
+            patientsList.innerHTML += `
+            <tr class="hover:bg-gray-100 cursor-pointer" onclick="window.showPatientDetails('${patient.id}')">
+                <td class="border px-4 py-2">${patient.name}</td>
+                <td class="border px-4 py-2">${patient.age}</td>
+                <td class="border px-4 py-2">${patient.gender}</td>
+                <td class="border px-4 py-2">${patient.email}</td>
+                <td class="border px-4 py-2">${patient.bloodGroup}</td>
+                <td class="border px-4 py-2">${patient.contact}</td>
+                <td class="border px-4 py-2">
+                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); window.editPatient('${patient.id}')">Edit</button>
+                    <button class="btn btn-sm btn-error" onclick="event.stopPropagation(); window.deletePatient('${patient.id}')">Delete</button>
+                </td>
+            </tr>
+            `;
+        });
+
+        renderPagination(patients.length, entriesPerPage);
+    }
 }
 
 function renderPagination(totalEntries, entriesPerPage) {
@@ -240,7 +253,7 @@ function addPatient(e, quill) {
         bloodGroup: bloodGroup,
         contact: contact,
         note: note,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp() // Add the createdAt field
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
         console.log('Patient added');
         loadPatients();

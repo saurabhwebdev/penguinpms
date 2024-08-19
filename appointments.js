@@ -39,6 +39,10 @@ export function loadAppointments() {
         </thead>
         <tbody id="appointmentsList"></tbody>
     </table>
+    <div id="emptyState" class="hidden text-center">
+        <img src="es.gif" alt="No appointments available" class="mx-auto mb-4" style="max-width: 300px;">
+        <p>No appointments available. Add an appointment to get started.</p>
+    </div>
     <div id="pagination" class="flex justify-center mt-4"></div>
     `;
 
@@ -87,29 +91,35 @@ function fetchAppointments() {
 
 function renderAppointments(appointments, entriesPerPage) {
     const appointmentsList = document.getElementById('appointmentsList');
+    const emptyState = document.getElementById('emptyState');
     appointmentsList.innerHTML = '';
 
-    const startIndex = (currentPage - 1) * entriesPerPage;
-    const endIndex = startIndex + entriesPerPage;
-    const paginatedAppointments = appointments.slice(startIndex, endIndex);
+    if (appointments.length === 0) {
+        emptyState.classList.remove('hidden');
+    } else {
+        emptyState.classList.add('hidden');
+        const startIndex = (currentPage - 1) * entriesPerPage;
+        const endIndex = startIndex + entriesPerPage;
+        const paginatedAppointments = appointments.slice(startIndex, endIndex);
 
-    paginatedAppointments.forEach((appointment) => {
-        appointmentsList.innerHTML += `
-        <tr>
-            <td class="border px-4 py-2">${appointment.patientName}</td>
-            <td class="border px-4 py-2">${appointment.date}</td>
-            <td class="border px-4 py-2">${appointment.time}</td>
-            <td class="border px-4 py-2">${appointment.status || 'Scheduled'}</td>
-            <td class="border px-4 py-2"><a href="https://wa.me/${appointment.contact}" target="_blank">${appointment.contact}</a></td>
-            <td class="border px-4 py-2">
-                <button class="btn btn-primary" onclick="window.editAppointment('${appointment.id}')">Edit</button>
-                <button class="btn btn-error" onclick="window.deleteAppointment('${appointment.id}')">Delete</button>
-            </td>
-        </tr>
-        `;
-    });
+        paginatedAppointments.forEach((appointment) => {
+            appointmentsList.innerHTML += `
+            <tr>
+                <td class="border px-4 py-2">${appointment.patientName}</td>
+                <td class="border px-4 py-2">${appointment.date}</td>
+                <td class="border px-4 py-2">${appointment.time}</td>
+                <td class="border px-4 py-2">${appointment.status || 'Scheduled'}</td>
+                <td class="border px-4 py-2"><a href="https://wa.me/${appointment.contact}" target="_blank">${appointment.contact}</a></td>
+                <td class="border px-4 py-2">
+                    <button class="btn btn-primary" onclick="window.editAppointment('${appointment.id}')">Edit</button>
+                    <button class="btn btn-error" onclick="window.deleteAppointment('${appointment.id}')">Delete</button>
+                </td>
+            </tr>
+            `;
+        });
 
-    renderPagination(appointments.length, entriesPerPage);
+        renderPagination(appointments.length, entriesPerPage);
+    }
 }
 
 function renderPagination(totalEntries, entriesPerPage) {
