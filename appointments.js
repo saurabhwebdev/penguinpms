@@ -4,7 +4,7 @@ export function loadAppointments() {
     const content = document.getElementById('content');
     content.innerHTML = `
     <h2 class="text-2xl font-bold mb-4">Appointments</h2>
-    <div class="flex justify-between mb-4">
+    <div class="flex flex-col md:flex-row justify-between mb-4 space-y-2 md:space-y-0">
         <button class="btn btn-primary" id="addAppointmentButton">Add Appointment</button>
         <input type="text" id="searchInput" class="input input-bordered" placeholder="Search by patient name">
         <select id="entriesSelect" class="select select-bordered">
@@ -14,7 +14,7 @@ export function loadAppointments() {
             <option value="20">20 entries</option>
         </select>
     </div>
-    <div class="flex justify-between mb-4">
+    <div class="flex flex-col md:flex-row justify-between mb-4 space-y-2 md:space-y-0">
         <select id="filterStatus" class="select select-bordered">
             <option value="">All Statuses</option>
             <option value="Scheduled">Scheduled</option>
@@ -26,19 +26,21 @@ export function loadAppointments() {
             <option value="dateDesc">Date Descending</option>
         </select>
     </div>
-    <table class="table-auto w-full mb-4">
-        <thead>
-            <tr>
-                <th class="px-4 py-2">Patient Name</th>
-                <th class="px-4 py-2">Date</th>
-                <th class="px-4 py-2">Time</th>
-                <th class="px-4 py-2">Status</th>
-                <th class="px-4 py-2">Contact</th>
-                <th class="px-4 py-2">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="appointmentsList"></tbody>
-    </table>
+    <div class="overflow-x-auto">
+        <table class="table-auto w-full mb-4">
+            <thead>
+                <tr>
+                    <th class="px-4 py-2">Patient Name</th>
+                    <th class="px-4 py-2">Date</th>
+                    <th class="px-4 py-2">Time</th>
+                    <th class="px-4 py-2">Status</th>
+                    <th class="px-4 py-2">Contact</th>
+                    <th class="px-4 py-2">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="appointmentsList"></tbody>
+        </table>
+    </div>
     <div id="emptyState" class="hidden text-center">
         <img src="es.gif" alt="No appointments available" class="mx-auto mb-4" style="max-width: 300px;">
         <p>No appointments available. Add an appointment to get started.</p>
@@ -204,33 +206,46 @@ function loadPatients() {
     });
 }
 
-function addAppointment(e) {
-    e.preventDefault();
+function addAppointment(event) {
+    event.preventDefault();
+
     const patientSelect = document.getElementById('patientSelect');
     const selectedOption = patientSelect.options[patientSelect.selectedIndex];
-    const patientName = selectedOption.text;
+    const patientId = selectedOption.value;
+    const patientName = selectedOption.textContent;
     const contact = selectedOption.getAttribute('data-contact');
-    const date = document.getElementById('appointmentDate').value;
-    const time = document.getElementById('appointmentTime').value;
-    const status = document.getElementById('appointmentStatus').value;
+
+    const appointmentDate = document.getElementById('appointmentDate').value;
+    const appointmentTime = document.getElementById('appointmentTime').value;
+    const appointmentStatus = document.getElementById('appointmentStatus').value;
 
     db.collection('appointments').add({
+        patientId: patientId,
         patientName: patientName,
+        date: appointmentDate,
+        time: appointmentTime,
+        status: appointmentStatus,
         contact: contact,
-        date: date,
-        time: time,
-        status: status
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-        console.log('Appointment added');
         loadAppointments();
     }).catch((error) => {
         console.error('Error adding appointment:', error);
     });
 }
 
-// Attach functions to the window object to make them globally accessible
-window.editAppointment = function(appointmentId) {
-    db.collection('appointments').doc(appointmentId).get().then((doc) => {
+window.deleteAppointment = function (id) {
+    if (confirm('Are you sure you want to delete this appointment?')) {
+        db.collection('appointments').doc(id).delete().then(() => {
+            fetchAppointments();
+        }).catch((error) => {
+            console.error('Error deleting appointment:', error);
+        });
+    }
+};
+
+window.editAppointment = function (id) {
+    db.collection('appointments').doc(id).get().then((doc) => {
         if (doc.exists) {
             const appointment = doc.data();
             const content = document.getElementById('content');
@@ -239,9 +254,9 @@ window.editAppointment = function(appointmentId) {
             <form id="editAppointmentForm">
                 <div class="form-control">
                     <label class="label">
-                        <span class="label-text">Patient Name</span>
+                        <span class="label-text">Patient</span>
                     </label>
-                    <input type="text" id="patientName" class="input input-bordered" value="${appointment.patientName}" required>
+                    <select id="patientSelect" class="select select-bordered" required></select>
                 </div>
                 <div class="form-control">
                     <label class="label">
@@ -266,48 +281,49 @@ window.editAppointment = function(appointmentId) {
                     </select>
                 </div>
                 <div class="flex justify-between mt-4">
-                    <button type="submit" class="btn btn-primary">Update Appointment</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
                     <button type="button" class="btn btn-secondary" onclick="loadAppointments()">Cancel</button>
                 </div>
             </form>
             `;
 
-            document.getElementById('editAppointmentForm').addEventListener('submit', (e) => updateAppointment(e, appointmentId));
+            loadPatients(() => {
+                document.getElementById('patientSelect').value = appointment.patientId;
+            });
+            document.getElementById('editAppointmentForm').addEventListener('submit', (event) => {
+                event.preventDefault();
+                updateAppointment(id);
+            });
         } else {
-            console.log('No such appointment!');
+            console.error('No such document!');
         }
     }).catch((error) => {
-        console.error('Error getting appointment:', error);
+        console.error('Error getting document:', error);
     });
-}
+};
 
-window.updateAppointment = function(e, appointmentId) {
-    e.preventDefault();
-    const patientName = document.getElementById('patientName').value;
-    const date = document.getElementById('appointmentDate').value;
-    const time = document.getElementById('appointmentTime').value;
-    const status = document.getElementById('appointmentStatus').value;
+function updateAppointment(id) {
+    const patientSelect = document.getElementById('patientSelect');
+    const selectedOption = patientSelect.options[patientSelect.selectedIndex];
+    const patientId = selectedOption.value;
+    const patientName = selectedOption.textContent;
+    const contact = selectedOption.getAttribute('data-contact');
 
-    db.collection('appointments').doc(appointmentId).update({
+    const appointmentDate = document.getElementById('appointmentDate').value;
+    const appointmentTime = document.getElementById('appointmentTime').value;
+    const appointmentStatus = document.getElementById('appointmentStatus').value;
+
+    db.collection('appointments').doc(id).update({
+        patientId: patientId,
         patientName: patientName,
-        date: date,
-        time: time,
-        status: status
+        date: appointmentDate,
+        time: appointmentTime,
+        status: appointmentStatus,
+        contact: contact,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }).then(() => {
-        console.log('Appointment updated');
         loadAppointments();
     }).catch((error) => {
         console.error('Error updating appointment:', error);
     });
-}
-
-window.deleteAppointment = function(appointmentId) {
-    if (confirm('Are you sure you want to delete this appointment?')) {
-        db.collection('appointments').doc(appointmentId).delete().then(() => {
-            console.log('Appointment deleted');
-            loadAppointments();
-        }).catch((error) => {
-            console.error('Error deleting appointment:', error);
-        });
-    }
 }
