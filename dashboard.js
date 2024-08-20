@@ -35,6 +35,7 @@ export function loadDashboard() {
             <div class="card-body">
                 <h3 class="card-title">Patient Statistics</h3>
                 <canvas id="patientChart"></canvas>
+                <div id="patientChartEmptyState" class="hidden text-center text-gray-500 mt-4">No patient data available</div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-xl">
@@ -53,12 +54,14 @@ export function loadDashboard() {
             <div class="card-body">
                 <h3 class="card-title">Appointments by Status</h3>
                 <canvas id="appointmentStatusChart"></canvas>
+                <div id="appointmentStatusChartEmptyState" class="hidden text-center text-gray-500 mt-4">No appointment status data available</div>
             </div>
         </div>
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
                 <h3 class="card-title">Appointments per Day</h3>
                 <canvas id="appointmentsPerDayChart"></canvas>
+                <div id="appointmentsPerDayChartEmptyState" class="hidden text-center text-gray-500 mt-4">No appointment data available for the next 7 days</div>
             </div>
         </div>
     </div>
@@ -127,6 +130,12 @@ function loadUpcomingAppointments() {
 function renderUpcomingAppointments(entriesPerPage) {
     const upcomingAppointments = document.getElementById('upcomingAppointments');
     upcomingAppointments.innerHTML = '';
+
+    if (allUpcomingAppointments.length === 0) {
+        upcomingAppointments.innerHTML = '<p class="text-center text-gray-500">No upcoming appointments</p>';
+        document.getElementById('pagination').innerHTML = '';
+        return;
+    }
 
     const startIndex = (currentPage - 1) * entriesPerPage;
     const endIndex = startIndex + entriesPerPage;
@@ -230,14 +239,24 @@ function loadPatientStatistics() {
         });
 
         const ctx = document.getElementById('patientChart');
-        if (!ctx) {
-            console.error('Element with ID "patientChart" not found');
+        const emptyState = document.getElementById('patientChartEmptyState');
+        if (!ctx || !emptyState) {
+            console.error('Required elements for patient chart not found');
             return;
         }
 
         if (patientChart) {
             patientChart.destroy();
         }
+
+        if (Object.values(ageGroups).every(value => value === 0)) {
+            ctx.style.display = 'none';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        ctx.style.display = 'block';
+        emptyState.classList.add('hidden');
 
         patientChart = new Chart(ctx.getContext('2d'), {
             type: 'pie',
@@ -269,7 +288,10 @@ function loadPatientStatistics() {
 function loadTotalPatients() {
     db.collection('patients').get().then((querySnapshot) => {
         const totalPatients = querySnapshot.size;
-        document.getElementById('totalPatients').textContent = totalPatients;
+        const totalPatientsElement = document.getElementById('totalPatients');
+        if (totalPatientsElement) {
+            totalPatientsElement.textContent = totalPatients || 'No patients';
+        }
     }).catch((error) => {
         console.error('Error loading total patients:', error);
     });
@@ -278,7 +300,10 @@ function loadTotalPatients() {
 function loadTotalAppointments() {
     db.collection('appointments').get().then((querySnapshot) => {
         const totalAppointments = querySnapshot.size;
-        document.getElementById('totalAppointments').textContent = totalAppointments;
+        const totalAppointmentsElement = document.getElementById('totalAppointments');
+        if (totalAppointmentsElement) {
+            totalAppointmentsElement.textContent = totalAppointments || 'No appointments';
+        }
     }).catch((error) => {
         console.error('Error loading total appointments:', error);
     });
@@ -300,14 +325,24 @@ function loadAppointmentStatusChart() {
         });
 
         const ctx = document.getElementById('appointmentStatusChart');
-        if (!ctx) {
-            console.error('Element with ID "appointmentStatusChart" not found');
+        const emptyState = document.getElementById('appointmentStatusChartEmptyState');
+        if (!ctx || !emptyState) {
+            console.error('Required elements for appointment status chart not found');
             return;
         }
 
         if (appointmentStatusChart) {
             appointmentStatusChart.destroy();
         }
+
+        if (Object.values(statusCounts).every(value => value === 0)) {
+            ctx.style.display = 'none';
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        ctx.style.display = 'block';
+        emptyState.classList.add('hidden');
 
         appointmentStatusChart = new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
@@ -361,14 +396,24 @@ function loadAppointmentsPerDayChart() {
             });
 
             const ctx = document.getElementById('appointmentsPerDayChart');
-            if (!ctx) {
-                console.error('Element with ID "appointmentsPerDayChart" not found');
+            const emptyState = document.getElementById('appointmentsPerDayChartEmptyState');
+            if (!ctx || !emptyState) {
+                console.error('Required elements for appointments per day chart not found');
                 return;
             }
 
             if (appointmentsPerDayChart) {
                 appointmentsPerDayChart.destroy();
             }
+
+            if (counts.every(count => count === 0)) {
+                ctx.style.display = 'none';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            ctx.style.display = 'block';
+            emptyState.classList.add('hidden');
 
             appointmentsPerDayChart = new Chart(ctx.getContext('2d'), {
                 type: 'bar',
@@ -391,6 +436,12 @@ function loadAppointmentsPerDayChart() {
                             type: 'time',
                             time: {
                                 unit: 'day'
+                            }
+                        }],
+                        yAxes: [{
+                            ticks: {
+                                beginAtZero: true,
+                                stepSize: 1
                             }
                         }]
                     }
